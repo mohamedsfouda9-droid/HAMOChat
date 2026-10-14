@@ -13,18 +13,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download repository files
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Check ZIP file
-        run: test -f HaMoChat.zip
-
-      - name: Extract project
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip
-          mkdir extracted
-          unzip -q HaMoChat.zip -d extracted
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -32,20 +22,18 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Generate Android files
-        working-directory: extracted/HaMoChat
+      - name: Generate Android project files
         run: flutter create --platforms=android --project-name hamo_chat --org com.hamo.chat .
 
       - name: Get dependencies
-        working-directory: extracted/HaMoChat
         run: flutter pub get
 
       - name: Build APK
-        working-directory: extracted/HaMoChat
         run: flutter build apk --debug
 
-      - name: Save APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: HaMo-Chat-Android-APK
-          path: extracted/HaMoChat/build/app/outputs/flutter-apk/app-debug.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
