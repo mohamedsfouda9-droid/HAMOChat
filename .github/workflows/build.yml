@@ -1,0 +1,51 @@
+name: Build HaMo Chat APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download repository files
+        uses: actions/checkout@v4
+
+      - name: Check ZIP file
+        run: test -f HaMoChat.zip
+
+      - name: Extract project
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          mkdir extracted
+          unzip -q HaMoChat.zip -d extracted
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android files
+        working-directory: extracted/HaMoChat
+        run: flutter create --platforms=android --project-name hamo_chat --org com.hamo.chat .
+
+      - name: Get dependencies
+        working-directory: extracted/HaMoChat
+        run: flutter pub get
+
+      - name: Build APK
+        working-directory: extracted/HaMoChat
+        run: flutter build apk --debug
+
+      - name: Save APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HaMo-Chat-Android-APK
+          path: extracted/HaMoChat/build/app/outputs/flutter-apk/app-debug.apk
