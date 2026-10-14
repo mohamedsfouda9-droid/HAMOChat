@@ -1,0 +1,56 @@
+name: Build HaMo Chat for iOS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check project archive
+        run: |
+          test -f HaMoChat.zip
+          mkdir extracted
+          unzip -q HaMoChat.zip -d extracted
+          test -f extracted/HaMoChat/pubspec.yaml
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate iOS project files
+        working-directory: extracted/HaMoChat
+        run: flutter create --platforms=ios --project-name hamo_chat --org com.hamo.chat .
+
+      - name: Get Flutter dependencies
+        working-directory: extracted/HaMoChat
+        run: flutter pub get
+
+      - name: Build iOS without signing
+        working-directory: extracted/HaMoChat
+        run: flutter build ios --release --no-codesign
+
+      - name: Package iOS app
+        working-directory: extracted/HaMoChat
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/ios/iphoneos/Runner.app \
+            HaMoChat-iOS-App.zip
+
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: HaMoChat-iOS-App
+          path: extracted/HaMoChat/HaMoChat-iOS-App.zip
+          if-no-files-found: error
